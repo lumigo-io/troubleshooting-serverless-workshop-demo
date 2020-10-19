@@ -64,10 +64,6 @@ exports.handler = async (event, context) => {
 async function findUnicorn(pickupLocation) {
 	console.log("Finding unicorn for ", pickupLocation.Latitude, ", ", pickupLocation.Longitude);
 
-	if (!("UNICORN_STABLE_API_KEY" in process.env)) {
-		throw new Error("UNICORN_STABLE_API_KEY environment variable is missing");
-	}
-  
 	if (!("UNICORN_STABLE_API" in process.env)) {
 		throw new Error("UNICORN_STABLE_API environment variable is missing");
 	}
@@ -88,10 +84,7 @@ async function findUnicorn(pickupLocation) {
 
 	const options = {
 		hostname,
-		path,
-		headers: {
-			"x-api-key": process.env.UNICORN_STABLE_API_KEY
-		}
+		path
 	};
 
 	return new Promise((resolve, reject) => {

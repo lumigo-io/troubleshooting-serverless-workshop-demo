@@ -10,8 +10,7 @@ custom:
   name: yancui
   region: ${opt:region, self:provider.region}
   stage: ${opt:stage, self:provider.stage}
-  unicornStableApi: hzi3xi7agi.execute-api.us-east-1.amazonaws.com/development
-  unicornStableApiKey: AI9MFcqVQM7BtIIWeJvsy1U1hvWOykBoawqzqW2r
+  unicornStableApi: 4fsay0n12a.execute-api.us-east-1.amazonaws.com/dev
   client:
     bucketName: ${self:service}-${self:custom.stage}-frontend
 
@@ -33,7 +32,6 @@ functions:
     handler: functions/requestUnicorn.handler
     environment:
       UNICORN_STABLE_API: ${self:custom.unicornStableApi}
-      UNICORN_STABLE_API_KEY: ${self:custom.unicornStableApiKey}
       TOPIC_NAME: !GetAtt UnicornDispatched.TopicName
       TOPIC_ARN: !Ref UnicornDispatched
       TABLE_NAME: !Ref OccupiedUnicorns
@@ -99,7 +97,6 @@ functions:
       BUCKET_NAME: !Ref UnicornSalaries
       BUCKET_ARN: !GetAtt UnicornSalaries.Arn
       UNICORN_STABLE_API: ${self:custom.unicornStableApi}
-      UNICORN_STABLE_API_KEY: ${self:custom.unicornStableApiKey}
     events:
       - schedule: rate(4 minutes)
     iamRoleStatements:

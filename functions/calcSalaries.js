@@ -58,10 +58,6 @@ async function decreaseRides(item) {
 
 async function getUnicornDetails(unicornName) {
 
-	if (!("UNICORN_STABLE_API_KEY" in process.env)) {
-		throw new Error("UNICORN_STABLE_API_KEY environment variable is missing");
-	}
-
 	if (!("UNICORN_STABLE_API" in process.env)) {
 		throw new Error("UNICORN_STABLE_API environment variable is missing");
 	}
@@ -80,10 +76,7 @@ async function getUnicornDetails(unicornName) {
 
 	const options = {
 		hostname,
-		path,
-		headers: {
-			"x-api-key": process.env.UNICORN_STABLE_API_KEY
-		}
+		path
 	};
 
 	return new Promise((resolve, reject) => {
