@@ -1,0 +1,36 @@
+{
+  "name": "troubleshooting-serverless-workshop-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test:lint": "eslint .",
+    "sls": "serverless",
+    "deploy-backend": "npm run sls -- deploy",
+    "build-frontend": "npm run sls -- export-env && node ./client/build.js",
+    "deploy-frontend": "npm run build-frontend && npm run sls -- client deploy --no-confirm",
+    "deploy-all": "npm run deploy-backend && npm run deploy-frontend",
+    "remove-all": "npm run sls -- client remove --no-confirm && npm run sls -- remove"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "dotenv": "^8.2.0",
+    "eslint": "^5.13.0",
+    "eslint-config-prettier": "^6.0.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-node": "^9.1.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "serverless": "2.4.0",
+    "serverless-export-env": "^1.4.0",
+    "serverless-finch": "^2.6.0",
+    "serverless-iam-roles-per-function": "^2.0.2",
+    "serverless-pseudo-parameters": "^2.5.0"
+  },
+  "dependencies": {
+    "uuid": "^8.3.1"
+  }
+}

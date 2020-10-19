@@ -1,0 +1,228 @@
+service: lumigo-workshop-${self:custom.name}
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-pseudo-parameters
+  - serverless-export-env
+  - serverless-finch
+
+custom:
+  name: yancui
+  region: ${opt:region, self:provider.region}
+  stage: ${opt:stage, self:provider.stage}
+  unicornStableApi: hzi3xi7agi.execute-api.us-east-1.amazonaws.com/development
+  unicornStableApiKey: AI9MFcqVQM7BtIIWeJvsy1U1hvWOykBoawqzqW2r
+  client:
+    bucketName: ${self:service}-${self:custom.stage}-frontend
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+
+package:
+  exclude:
+    - client/**
+    - .serverless/**
+    - package.json
+    - package-lock.json
+    - serverless.yml
+
+functions:
+  requestUnicorn:
+    handler: functions/requestUnicorn.handler
+    environment:
+      UNICORN_STABLE_API: ${self:custom.unicornStableApi}
+      UNICORN_STABLE_API_KEY: ${self:custom.unicornStableApiKey}
+      TOPIC_NAME: !GetAtt UnicornDispatched.TopicName
+      TOPIC_ARN: !Ref UnicornDispatched
+      TABLE_NAME: !Ref OccupiedUnicorns
+      TABLE_ARN: !GetAtt OccupiedUnicorns.Arn
+    events:
+      - http:
+          path: /ride
+          method: post
+          cors: true
+          authorizer:
+            name: CognitoAuthorizer
+            type: cognito_user_pools
+            arn: !GetAtt UserPool.Arn
+    iamRoleStatements:
+      - Effect: Allow
+        Action: sns:Publish
+        Resource: !Ref UnicornDispatched
+      - Effect: Allow
+        Action: 
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource: !GetAtt OccupiedUnicorns.Arn
+
+  uploadReceipt:
+    handler: functions/uploadReceipt.handler
+    environment:
+      BUCKET_NAME: !Ref RideReceipts
+      BUCKET_ARN: !GetAtt RideReceipts.Arn
+    events:
+      - sns:
+          arn: !Ref UnicornDispatched
+          topicName: ${self:service}-${self:custom.stage}-unicornDispatched
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:PutObjectTagging
+        Resource:
+          - "#{RideReceipts.Arn}"
+          - "#{RideReceipts.Arn}/*"
+
+  sumRides:
+    handler: functions/sumRides.handler
+    environment:
+      TABLE_NAME: !Ref UnicornStats
+      TABLE_ARN: !GetAtt UnicornStats.Arn
+    events:
+      - stream:
+          type: dynamodb
+          arn: !GetAtt Rides.StreamArn
+          startingPosition: TRIM_HORIZON
+          batchSize: 1
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:UpdateItem
+        Resource: !GetAtt UnicornStats.Arn
+
+  calcSalaries:
+    handler: functions/calcSalaries.handler
+    environment:
+      TABLE_NAME: !Ref UnicornStats
+      TABLE_ARN: !GetAtt UnicornStats.Arn
+      BUCKET_NAME: !Ref UnicornSalaries
+      BUCKET_ARN: !GetAtt UnicornSalaries.Arn
+      UNICORN_STABLE_API: ${self:custom.unicornStableApi}
+      UNICORN_STABLE_API_KEY: ${self:custom.unicornStableApiKey}
+    events:
+      - schedule: rate(4 minutes)
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - dynamodb:Scan
+          - dynamodb:UpdateItem
+        Resource: !GetAtt UnicornStats.Arn
+      - Effect: Allow
+        Action: 
+          - s3:PutObject
+          - s3:PutObjectTagging
+        Resource:
+          - "#{UnicornSalaries.Arn}"
+          - "#{UnicornSalaries.Arn}/*"
+
+  recordRide:
+    handler: functions/recordRide.handler
+    environment:
+      TABLE_NAME: !Ref Rides
+      TABLE_ARN: !GetAtt Rides.Arn
+    events:
+      - sns:
+          arn: !Ref UnicornDispatched
+          topicName: ${self:service}-${self:custom.stage}-unicornDispatched
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt Rides.Arn
+
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: false
+        AliasAttributes:
+          - email
+          - preferred_username
+        AutoVerifiedAttributes:
+          - email
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId: !Ref UserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        PreventUserExistenceErrors: ENABLED
+
+    Rides:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: RideId
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: RideId
+            KeyType: HASH
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    OccupiedUnicorns:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: UnicornName
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: UnicornName
+            KeyType: HASH
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        TimeToLiveSpecification:
+          AttributeName: Expiration
+          Enabled: true
+
+    UnicornStats:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: Name
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: Name
+            KeyType: HASH
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    UnicornDispatched:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:service}-${self:custom.stage}-unicornDispatched
+
+    RideReceipts:
+      Type: AWS::S3::Bucket
+
+    UnicornSalaries:
+      Type: AWS::S3::Bucket
+
+  Outputs:
+    UserPoolId:
+      Value: !Ref UserPool
+
+    UserPoolArn:
+      Value: !GetAtt UserPool.Arn
+
+    UserPoolClientId:
+      Value: !Ref UserPoolClient
+
+    AwsRegion:
+      Value: "#{AWS::Region}"
+
+    ApiUrl:
+      Value:
+        Fn::Join:
+          - ""
+          - - https://
+            - !Ref ApiGatewayRestApi
+            - .execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}
