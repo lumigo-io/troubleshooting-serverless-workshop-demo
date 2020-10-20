@@ -1,5 +1,5 @@
 const randomBytes = require("crypto").randomBytes;
-const get = require("https").get;
+const axios = require("axios");
 
 const AWS = require("aws-sdk");
 const sns = new AWS.SNS();
@@ -67,38 +67,9 @@ async function findUnicorn(pickupLocation) {
 	if (!("UNICORN_STABLE_API" in process.env)) {
 		throw new Error("UNICORN_STABLE_API environment variable is missing");
 	}
-  
-	// API may be like 'foo.example.com/path/prefix'. We would then need to make
-	// a request to 'https://foo.example.com/path/prefix/unicorn'. This
-	// calculates the hostname and full path for the request we need to make.
-	const match = process.env.UNICORN_STABLE_API.match(/([^/]+)(\/.*)?/);
 
-	if (!match) {
-		throw new Error("Invalid unicorn stable API from UNICORN_STABLE_API environment variable");
-	}
-
-	const [ _, hostname, pathPrefix] = match;
-	const path = (pathPrefix || "") + "/unicorn";
-
-	console.log(`Making request to https://${hostname}${path}`);
-
-	const options = {
-		hostname,
-		path
-	};
-
-	return new Promise((resolve, reject) => {
-		get(options, res => {
-			res.setEncoding("utf8");
-			let body = "";
-
-			res.on("data", data => body += data);
-
-			res.on("end", () => resolve(JSON.parse(body)));
-
-			res.on("error", err => reject(err));
-		});
-	});
+	const resp = await axios.get(`https://${process.env.UNICORN_STABLE_API}/unicorn`);
+	return resp.data;
 }
 
 async function publishRide(rideId, username, email, rideDetail) {
