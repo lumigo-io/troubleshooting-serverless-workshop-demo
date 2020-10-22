@@ -1,8 +1,12 @@
-const axios = require("axios");
-const uuid = require("uuid");
-const AWS = require("aws-sdk");
+const AWSXRay = require("aws-xray-sdk-core");
+const AWS = AWSXRay.captureAWS(require("aws-sdk"));
 const ddb = new AWS.DynamoDB.DocumentClient();
 const s3 = new AWS.S3();
+
+AWSXRay.captureHTTPsGlobal(require("https"));
+
+const axios = require("axios");
+const uuid = require("uuid");
 
 const PAY_PER_RIDE = 13;
 
@@ -63,5 +67,6 @@ async function getUnicornDetails(unicornName) {
 	}
   
 	const resp = await axios.get(`https://${process.env.UNICORN_STABLE_API}/unicorn/${unicornName}`);
+	console.log("found unicorn:", resp.data);
 	return resp.data;
 }

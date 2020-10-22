@@ -31,6 +31,7 @@
     "serverless-pseudo-parameters": "^2.5.0"
   },
   "dependencies": {
+    "aws-xray-sdk-core": "^3.2.0",
     "axios": "^0.20.0",
     "uuid": "^8.3.1"
   }

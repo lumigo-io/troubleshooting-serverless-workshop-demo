@@ -1,9 +1,15 @@
 const randomBytes = require("crypto").randomBytes;
-const axios = require("axios");
 
-const AWS = require("aws-sdk");
+// Instrument AWS-SDK
+const AWSXRay = require("aws-xray-sdk-core");
+const AWS = AWSXRay.captureAWS(require("aws-sdk"));
 const sns = new AWS.SNS();
 const ddb = new AWS.DynamoDB.DocumentClient();
+
+// Instrument HTTP requests
+AWSXRay.captureHTTPsGlobal(require("https"));
+
+const axios = require("axios");
 
 const RIDE_LENGTH_SECONDS = 30;
 exports.handler = async (event, context) => {
@@ -69,6 +75,9 @@ async function findUnicorn(pickupLocation) {
 	}
 
 	const resp = await axios.get(`https://${process.env.UNICORN_STABLE_API}/unicorn`);
+  
+	// Instrument HTTP responses
+	console.log("found unicorn:", resp.data);
 	return resp.data;
 }
 

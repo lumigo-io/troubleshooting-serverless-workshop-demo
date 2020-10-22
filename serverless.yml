@@ -1,4 +1,4 @@
-service: lumigo-workshop-${self:custom.name}
+service: lumigo-workshop-xray-${self:custom.name}
 
 plugins:
   - serverless-iam-roles-per-function
@@ -13,11 +13,22 @@ custom:
   unicornStableApi: 4fsay0n12a.execute-api.us-east-1.amazonaws.com/dev
   client:
     bucketName: ${self:service}-${self:custom.stage}-frontend
+  serverless-iam-roles-per-function:
+    defaultInherit: true
 
 provider:
   name: aws
   runtime: nodejs12.x
   stage: dev
+  tracing:
+    apiGateway: true
+    lambda: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "xray:PutTraceSegments"
+        - "xray:PutTelemetryRecords"
+      Resource: "*"
 
 package:
   exclude:
