@@ -7,7 +7,7 @@ plugins:
   - serverless-finch
 
 custom:
-  name: <INSERT YOU NAME>
+  name: yancui
   region: ${opt:region, self:provider.region}
   stage: ${opt:stage, self:provider.stage}
   unicornStableApi: 4fsay0n12a.execute-api.us-east-1.amazonaws.com/dev
