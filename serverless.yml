@@ -12,7 +12,7 @@ custom:
   stage: ${opt:stage, self:provider.stage}
   unicornStableApi: 22o78sso8l.execute-api.us-east-1.amazonaws.com/dev
   client:
-    bucketName: ${self:service}-${self:custom.stage}-frontend
+    bucketName: ${self:service}-${self:custom.stage}.us-east-1.frontend
 
 provider:
   name: aws
@@ -202,6 +202,11 @@ resources:
 
     UnicornSalaries:
       Type: AWS::S3::Bucket
+
+    FrontEndBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.client.bucketName}
 
   Outputs:
     UserPoolId:
