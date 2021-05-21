@@ -10,7 +10,7 @@ custom:
   name: <INSERT YOUR NAME>
   region: ${opt:region, self:provider.region}
   stage: ${opt:stage, self:provider.stage}
-  unicornStableApi: 4fsay0n12a.execute-api.us-east-1.amazonaws.com/dev
+  unicornStableApi: 22o78sso8l.execute-api.us-east-1.amazonaws.com/dev
   client:
     bucketName: ${self:service}-${self:custom.stage}-frontend
 
