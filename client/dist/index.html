@@ -283,8 +283,14 @@
         }));
 
         xhr.onreadystatechange = function (e) {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-            alert("your unicorn has been requested");
+          if (xhr.readyState === 4 && xhr.status === 201) {
+            const result = JSON.parse(xhr.responseText)
+            if (result.RideDetail.Unicorn) {
+              const unicorn = result.RideDetail.Unicorn
+              alert(`${unicorn.Name}, your ${unicorn.Color} unicorn, is on their way.`)
+            } else {
+              alert('Unicorn not available, please try again')
+            }            
           } else if (xhr.readyState === 4) {
             alert(xhr.responseText);
           }
