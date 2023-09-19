@@ -2,17 +2,23 @@ service: lumigo-workshop-${self:custom.name}
 
 plugins:
   - serverless-iam-roles-per-function
-  - serverless-pseudo-parameters
-  - serverless-export-env
   - serverless-finch
+  - serverless-export-outputs
 
 custom:
-  name: <INSERT YOUR NAME>
-  region: ${opt:region, self:provider.region}
-  stage: ${opt:stage, self:provider.stage}
-  unicornStableApi: 22o78sso8l.execute-api.us-east-1.amazonaws.com/dev
+  name: yancui
+  unicornStableApi: h48kqx343c.execute-api.us-east-1.amazonaws.com/dev
   client:
-    bucketName: ${self:service}-${self:custom.stage}.us-east-1.frontend
+    bucketName: ${self:service}-${sls:stage}.us-east-1.frontend
+  exportOutputs:
+    include:
+      - UserPoolId
+      - UserPoolArn
+      - UserPoolClientId
+      - AwsRegion
+      - ApiUrl
+    output:
+      file: ./.env
 
 provider:
   name: aws
@@ -63,15 +69,15 @@ functions:
     events:
       - sns:
           arn: !Ref UnicornDispatched
-          topicName: ${self:service}-${self:custom.stage}-unicornDispatched
+          topicName: ${self:service}-${sls:stage}-unicornDispatched
     iamRoleStatements:
       - Effect: Allow
         Action:
           - s3:PutObject
           - s3:PutObjectTagging
         Resource:
-          - "#{RideReceipts.Arn}"
-          - "#{RideReceipts.Arn}/*"
+          - !GetAtt RideReceipts.Arn
+          - !Sub "${RideReceipts.Arn}/*"
 
   sumRides:
     handler: functions/sumRides.handler
@@ -110,8 +116,8 @@ functions:
           - s3:PutObject
           - s3:PutObjectTagging
         Resource:
-          - "#{UnicornSalaries.Arn}"
-          - "#{UnicornSalaries.Arn}/*"
+          - !GetAtt UnicornSalaries.Arn
+          - !Sub "${UnicornSalaries.Arn}/*"
 
   recordRide:
     handler: functions/recordRide.handler
@@ -121,7 +127,7 @@ functions:
     events:
       - sns:
           arn: !Ref UnicornDispatched
-          topicName: ${self:service}-${self:custom.stage}-unicornDispatched
+          topicName: ${self:service}-${sls:stage}-unicornDispatched
     iamRoleStatements:
       - Effect: Allow
         Action: dynamodb:PutItem
@@ -195,7 +201,7 @@ resources:
     UnicornDispatched:
       Type: AWS::SNS::Topic
       Properties:
-        TopicName: ${self:service}-${self:custom.stage}-unicornDispatched
+        TopicName: ${self:service}-${sls:stage}-unicornDispatched
 
     RideReceipts:
       Type: AWS::S3::Bucket
@@ -207,6 +213,11 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.client.bucketName}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
 
   Outputs:
     UserPoolId:
@@ -219,12 +230,8 @@ resources:
       Value: !Ref UserPoolClient
 
     AwsRegion:
-      Value: "#{AWS::Region}"
+      Value: !Ref AWS::Region
 
     ApiUrl:
       Value:
-        Fn::Join:
-          - ""
-          - - https://
-            - !Ref ApiGatewayRestApi
-            - .execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}
+        !Sub https://${ApiGatewayRestApi}.execute-api.${aws:region}.amazonaws.com/${sls:stage}

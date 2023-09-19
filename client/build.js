@@ -5,13 +5,13 @@ require('dotenv').config();
 // Build config using API and Cognito User Pool info if we've deployed them
 const config = {
   api: {
-    invokeUrl: process.env.API_URL ? `${process.env.API_URL}/ride` : undefined,
+    invokeUrl: process.env.ApiUrl ? `${process.env.ApiUrl}/ride` : undefined,
   },
   cognito: {
-    userPoolId: process.env.USER_POOL_ID,
-    userPoolClientId: process.env.USER_POOL_CLIENT_ID,
-    region: process.env.AWS_REGION,
-    disabled: !process.env.USER_POOL_CLIENT_ID
+    userPoolId: process.env.UserPoolId,
+    userPoolClientId: process.env.UserPoolClientId,
+    region: process.env.AwsRegion,
+    disabled: !process.env.UserPoolClientId
   }
 };
 

@@ -1,10 +1,10 @@
 window._config = {
   "api": {
-    "invokeUrl": "https://bzx29xfarg.execute-api.us-east-1.amazonaws.com/dev/ride"
+    "invokeUrl": "https://ubz5pglg68.execute-api.us-east-1.amazonaws.com/dev/ride"
   },
   "cognito": {
-    "userPoolId": "us-east-1_EvAcmvQGw",
-    "userPoolClientId": "698ijjrmb0oneo7d4kgndo3a3o",
+    "userPoolId": "us-east-1_Wm6LflME2",
+    "userPoolClientId": "1pn8qu2ph5iqv3sq6cnkc3gkec",
     "region": "us-east-1",
     "disabled": false
   }

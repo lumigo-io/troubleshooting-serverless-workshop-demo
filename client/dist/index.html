@@ -1,160 +1,441 @@
-<!doctype html>
-<html class="no-js" lang="">
-<head>
-  <meta charset="utf-8">
-  <meta name="description" content="">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wild Rydes</title>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Wild Rydes (kinda...)</title>
 
-  <link rel="stylesheet" href="css/font.css">
-  <link rel="stylesheet" href="css/main.css">
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.149.0.min.js"></script>
+    <script src="https://d2qt42rcwzspd6.cloudfront.net/manning/aws-cognito-sdk.min.js"></script>
+    <script src="https://d2qt42rcwzspd6.cloudfront.net/manning/amazon-cognito-identity.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" 
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous"></script>
+    <script src="js/config.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" 
+            integrity="sha384-Dziy8F2VlJQLMShA6FHWNul/veM9bCkRUaLqr199K94ntO5QUrLJBEbYegdSkkqX" 
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
-  <script src="js/vendor/modernizr.js"></script>
-</head>
-<body class="page-home">
+    <style>
+      .fullscreenDiv {
+        background-color: #05bafd;
+        width: 100%;
+        height: auto;
+        bottom: 0px;
+        top: 0px;
+        left: 0;
+        position: absolute;        
+      }
+      .restaurantsDiv {
+        background-color: #ffffff;
+        width: 100%;
+        height: auto;
+      }
+      .dayOfWeek {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 32px;
+        padding: 10px;
+        height: auto;
+        display: flex;
+        justify-content: center;
+      }
+      .column-container {
+        padding: 0;
+        margin: 0;        
+        list-style: none;
+        display: flex;
+        flex-flow: column;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .row-container {
+        padding: 5px;
+        margin: 5px;
+        list-style: none;
+        display: flex;
+        flex-flow: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .item {
+        padding: 5px;
+        height: auto;
+        margin-top: 10px;
+        display: flex;
+        flex-flow: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .restaurant {
+        background-color: #00a8f7;
+        border-radius: 10px;
+        padding: 5px;
+        height: auto;
+        width: auto;
+        margin-left: 40px;
+        margin-right: 40px;
+        margin-top: 15px;
+        margin-bottom: 0px;
+        display: flex;
+        justify-content: center;
+      }
+      .restaurant-name {
+        font-size: 24px;
+        font-family:Arial, Helvetica, sans-serif;
+        color: #ffffff;
+        padding: 10px;
+        margin: 0px;
+      }
+      .restaurant-image {
+        padding-top: 0px;
+        margin-top: 0px;
+      }
+      .row-container-left {
+        list-style: none;
+        display: flex;
+        flex-flow: row;
+        justify-content: flex-start;
+      }
+      .menu-text {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+      }
+      .text-trail-space {
+        margin-right: 10px;
+      }
+      .hidden {
+        display: none;
+      }
 
-  <header class="site-header">
-    <h1 class="title">Wild Rydes</h1>
-    <nav class="site-nav">
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="unicorns.html">Meet the Unicorns</a></li>
-        <li><a href="investors.html">Investors &amp; Board of Directors</a></li>
-        <li><a href="faq.html">FAQ</a></li>
-        <li><a href="apply.html">Apply</a></li>
+      label, button, input {
+        display:block;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 18px;
+      }
+      
+      fieldset { 
+        padding:0; 
+        border:0; 
+        margin-top:25px; 
+      }
+
+    </style>
+
+    <script>
+      const AWS_REGION = window._config.cognito.region;
+      const COGNITO_USER_POOL_ID = window._config.cognito.userPoolId;
+      const CLIENT_ID = window._config.cognito.userPoolClientId;
+      const REQUEST_UNICORN_URL = window._config.api.invokeUrl;
+
+      var regDialog, regForm;
+      var verifyDialog;
+      var regCompleteDialog;
+      var signInDialog;
+      var userPool, cognitoUser;
+      var idToken;
+
+      function toggleSignOut (enable) {
+        enable === true ? $('#sign-out').show() : $('#sign-out').hide();
+      }
+
+      function toggleSignIn (enable) {
+        enable === true ? $('#sign-in').show() : $('#sign-in').hide();
+      }
+
+      function toggleRegister (enable) {
+        enable === true ? $('#register').show() : $('#register').hide();
+      }
+
+      function init() {
+        AWS.config.region = AWS_REGION;
+        AWSCognito.config.region = AWS_REGION;
+
+        var data = { 
+          UserPoolId : COGNITO_USER_POOL_ID, 
+          ClientId : CLIENT_ID
+        };
+        userPool = new AWSCognito.CognitoIdentityServiceProvider.CognitoUserPool(data);
+        cognitoUser = userPool.getCurrentUser();
+
+        if (cognitoUser != null) {          
+          cognitoUser.getSession(function(err, session) {
+            if (err) {
+                alert(err);
+                return;
+            }
+
+            idToken = session.idToken.jwtToken;
+            console.log('idToken: ' + idToken);
+            console.log('session validity: ' + session.isValid());
+          });
+
+          toggleSignOut(true);
+          toggleSignIn(false);
+          toggleRegister(false);
+        } else {
+          toggleSignOut(false);
+          toggleSignIn(true);
+          toggleRegister(true);
+        }
+      }
+
+      function addUser() {
+        var firstName = $("#first-name")[0].value;
+        var lastName = $("#last-name")[0].value;
+        var username = $("#username")[0].value;
+        var password = $("#password")[0].value;
+        var email = $("#email")[0].value;
+
+        var attributeList = [
+          new AWSCognito.CognitoIdentityServiceProvider.CognitoUserAttribute({ 
+            Name : 'email', Value : email
+          }),
+          new AWSCognito.CognitoIdentityServiceProvider.CognitoUserAttribute({ 
+            Name : 'given_name', Value : firstName
+          }),
+          new AWSCognito.CognitoIdentityServiceProvider.CognitoUserAttribute({ 
+            Name : 'family_name', Value : lastName
+          }),
+        ];
+
+        userPool.signUp(username, password, attributeList, null, function(err, result){
+          if (err) {
+            alert(err);
+            return;
+          }
+          cognitoUser = result.user;
+          console.log('user name is ' + cognitoUser.getUsername());
+
+          regDialog.dialog("close");
+          verifyDialog.dialog("open");
+        });
+      }
+
+      function confirmUser() {
+        var verificationCode = $("#verification-code")[0].value;
+        cognitoUser.confirmRegistration(verificationCode, true, function(err, result) {
+          if (err) {
+            alert(err);
+            return;
+          }
+          console.log('verification call result: ' + result);
+
+          verifyDialog.dialog("close");
+          regCompleteDialog.dialog("open");
+        });
+      }
+
+      function authenticateUser() {
+        var username = $("#sign-in-username")[0].value;
+        var password = $("#sign-in-password")[0].value;
+
+        var authenticationData = {
+          Username : username,
+          Password : password,
+        };
+        var authenticationDetails = new AWSCognito.CognitoIdentityServiceProvider.AuthenticationDetails(authenticationData);
+        var userData = {
+          Username : username,
+          Pool : userPool
+        };
+        var cognitoUser = new AWSCognito.CognitoIdentityServiceProvider.CognitoUser(userData);
+
+        cognitoUser.authenticateUser(authenticationDetails, {
+          onSuccess: function (result) {
+            console.log('access token : ' + result.getAccessToken().getJwtToken());
+            /*Use the idToken for Logins Map when Federating User Pools with Cognito Identity or when passing through an Authorization Header to an API Gateway Authorizer*/
+            idToken = result.idToken.jwtToken;
+            console.log('idToken : ' + idToken);
+
+            signInDialog.dialog("close");
+            toggleRegister(false);
+            toggleSignIn(false);
+            toggleSignOut(true);
+          },
+
+          onFailure: function(err) {
+            alert(err);
+          }
+        });
+      }
+
+      function signOut() {
+        if (cognitoUser != null) {
+          cognitoUser.signOut();
+          toggleRegister(true);
+          toggleSignIn(true);
+          toggleSignOut(false);
+        }
+      }
+
+      function requestUnicorn() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', REQUEST_UNICORN_URL, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("Authorization", idToken);
+        xhr.send(JSON.stringify({ 
+          PickupLocation: {
+            Latitude: 51.507351,
+            Longitude: -0.127758,
+          }  
+        }));
+
+        xhr.onreadystatechange = function (e) {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            alert("your unicorn has been requested");
+          } else if (xhr.readyState === 4) {
+            alert(xhr.responseText);
+          }
+        };
+      }
+
+      $(document).ready(function() {
+        regDialog = $("#reg-dialog-form").dialog({
+          autoOpen: false,
+          modal: true,
+          buttons: {
+            "Create an account": addUser,
+            Cancel: function() {
+              regDialog.dialog("close");
+            }
+          },
+          close: function() {
+            regForm[0].reset();
+          }
+        });
+
+        regForm = regDialog.find("form").on("submit", function(event) {
+          event.preventDefault();
+          addUser();
+        });
+        
+        $("#register").on("click", function() {
+          regDialog.dialog("open");
+        });
+
+        verifyDialog = $("#verify-dialog-form").dialog({
+          autoOpen: false,
+          modal: true,
+          buttons: {
+            "Confirm registration": confirmUser,
+            Cancel: function() {
+              verifyDialog.dialog("close");
+            }
+          },
+          close: function() {
+            $(this).dialog("close");
+          }
+        });
+
+        regCompleteDialog = $("#registered-message").dialog({
+          autoOpen: false,
+          modal: true,
+          buttons: {
+            Ok: function() {
+              $(this).dialog("close");
+            }
+          }
+        });
+
+        signInDialog = $("#sign-in-form").dialog({
+          autoOpen: false,
+          modal: true,
+          buttons: {
+            "Sign in": authenticateUser,
+            Cancel: function() {
+              signInDialog.dialog("close");
+            }
+          },
+          close: function() {
+            $(this).dialog("close");
+          }
+        });
+
+        $("#sign-in").on("click", function() {
+          signInDialog.dialog("open");
+        });
+
+        $("#sign-out").on("click", function() {
+          signOut();
+        })
+
+        init();
+      });
+
+    </script>
+  </head>
+
+  <body>
+    <div class="fullscreenDiv">
+      <ul class="column-container">
+        <li>
+          <ul class="row-container-left">
+            <li id="register" class="item text-trail-space hidden">
+              <a class="menu-text" href="#">Register</a>
+            </li>
+            <li id="sign-in" class="item menu-text text-trail-space hidden">
+              <a class="menu-text" href="#">Sign in</a>
+            </li>
+            <li id="sign-out" class="item menu-text text-trail-space hidden">
+              <a class="menu-text" href="#">Sign out</a>
+            </li>
+          </ul>
+        </li>
+        <li class="item">
+          <img id="logo" src="https://d2qt42rcwzspd6.cloudfront.net/manning/big-mouth.png">
+        </li>
+        <li class="item">
+          <button onclick="requestUnicorn()">Request Unicorn</button>
+        </li>        
       </ul>
-    </nav>
-    <button type="button" class="btn-menu"><span>Menu</span></button>
-    <a class="home-button" href="/ride.html">Giddy Up!</a>
-  </header>
-
-  <section class="home-about">
-    <div class="row column large-9 xlarge-6 xxlarge-4">
-      <h2 class="section-title">How Does This Work?</h2>
-      <p class="content">
-        In today’s fast paced world, you’ve got places you need to be but not enough time in your jam packed schedule. Wouldn’t it be nice if there were a transportation service that changed the way you get around daily? Introducing Wild Rydes, an innovative transportation service that helps people get to their destination faster and hassle-free. Getting started is as easy as tapping a button in our app.
-      </p>
     </div>
 
-    <div class="row medium-up-2 large-up-4">
-      <div class="column">
-        <div class="home-about-block">
-          <h3 class="title icon-download">Download The App</h3>
-          <p class="content">Head over to the app store and download the Wild Rydes app. You’re just a few taps away from getting your ryde.</p>
-        </div>
-      </div>
-
-      <div class="column">
-        <div class="home-about-block">
-          <h3 class="title icon-unicorn">Request A Unicorn</h3>
-          <p class="content">We can get you there. Simply request a ryde on the app and we'll connect you with a unicorn immediately.</p>
-        </div>
-      </div>
-
-      <div class="column">
-        <div class="home-about-block">
-          <h3 class="title icon-price">Pick A Price</h3>
-          <p class="content">Pick the valuation you're willing to pay and your ryde is set up. The only surge is the acceleration you get when taking off.</p>
-        </div>
-      </div>
-
-      <div class="column">
-        <div class="home-about-block">
-          <h3 class="title icon-success">Ride Off To Success!</h3>
-          <p class="content">After matching with your unicorn and agreeing to its terms, you’ll be all set. Your unicorn will arrive shortly to pick you up.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="home-story">
-    <div class="row column large-9 xlarge-6 xxlarge-4">
-      <h2 class="section-title">Our Story</h2>
-      <p class="content">
-        Wild Rydes was started by a former hedge fund analyst and a software developer. The two long-time friends happened upon the Wild Rydes idea after attending a silent yoga retreat in Nevada. After gazing upon the majestic herds of unicorns prancing across a surreal Nevada sunset, they witnessed firsthand the poverty and unemployment endemic to that once proud race. Whether it was modern society’s reliance on science over magic or not, we’ll never know the cause of their Ozymandian downfall and fade to obscurity. Moved by empathy, romance, and free enterprise, they saw an opportunity to marry society’s demand for faster, more flexible transportation to underutilized beasts of labor through an on-demand market making transportation app. Using the founders’ respective expertise in animal husbandry and software engineering, Wild Rydes was formed and has since raised untold amounts of venture capital. Today, Wild Rydes has thousands of unicorns in its network fulfilling hundreds of rydes each day.
-      </p>
-    </div>
-  </section>
-
-  <section class="home-sign-up">
-    <div class="row column">
-      <img class="icon-w" src="images/wr-home-W.png">
-
-      <form onsubmit="javascript:void(0);">
-        <input type="email" placeholder="Enter your email address">
-        <button type="button">Submit</button>
+    <div id="reg-dialog-form" title="Register">       
+      <form>
+        <fieldset>
+          <label for="first-name">First Name</label>
+          <input type="text" id="first-name" class="text ui-widget-content ui-corner-all">
+          <label for="last-name">Last Name</label>
+          <input type="text" id="last-name" class="text ui-widget-content ui-corner-all">
+          <label for="email">Email</label>
+          <input type="text" name="email" id="email" class="text ui-widget-content ui-corner-all">
+          <label for="username">Username</label>
+          <input type="text" name="username" id="username" class="text ui-widget-content ui-corner-all">
+          <label for="password">Password</label>
+          <input type="password" name="password" id="password" class="text ui-widget-content ui-corner-all">
+        </fieldset>
       </form>
-
-      <h2 class="section-title">Sign Up</h2>
-
-      <p class="content">Wild Rydes is coming soon! Enter your email to enter the limited private beta</p>
-
-      <div class="apps">
-        <a class="app-icon" href=""><img src="images/wr-home-apple.png"></a>
-        <a class="app-icon" href=""><img src="images/wr-home-google.png"></a>
-        <a class="app-icon" href=""><img src="images/wr-home-blackberry.png"></a>
-        <a class="app-icon" href=""><img src="images/wr-home-Xiaomi.png"></a>
-      </div>
-
-      <div class="social">
-        <a class="icon-fb" href="">Facebook</a>
-        <a class="icon-tw" href="">Twitter</a>
-        <a class="icon-ig" href="">Instagram</a>
-        <a class="icon-wc" href="">Wechat</a>
-        <a class="icon-wb" href="">Weibo</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="home-quote">
-    <div class="row column medium-8 xxlarge-6">
-      <div class="quote-wrap">
-        <div class="quote">
-          “I was almost late to my ultimate frisbee tournament in DOLORES park. BUt Wild Rydes Got me there from the marina in under five minutes.”
-        </div>
-        <div class="quoter">- Satisfied Wild Rydes User</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="kraken-callout">
-    <div class="row">
-      <div class="columns medium-6 xxlarge-4 xxlarge-offset-2">
-        <img src="images/wr-home-kraken.png">
-      </div>
-
-      <div class="columns medium-6 xlarge-5 xxlarge-4">
-        <h4 class="title">Coming Soon</h4>
-        <p class="content">
-          Kraken 3xplorer and Dragon Flyght. We’re looking to provide you a full service package from air, land, and to sea.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <footer class="site-footer">
-    <div class="row column">
-      <nav class="footer-nav">
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="unicorns.html">Meet the Unicorns</a></li>
-          <li><a href="investors.html">Investors & Board of Directors</a></li>
-          <li><a href="faq.html">FAQ</a></li>
-          <li><a href="apply.html">Apply</a></li>
-        </ul>
-      </nav>
     </div>
 
-    <div class="row column">
-      <div class="footer-legal">
-        &copy;WildRydes Inc<br>
-        All Rights Reserved
-      </div>
+    <div id="verify-dialog-form" title="Verify">
+      <form>
+        <fieldset>
+            <label for="verification-code">Verification Code</label>
+            <input type="text" id="verification-code" class="text ui-widget-content ui-corner-all">
+        </fieldset>
+      </form>
     </div>
-  </footer>
 
-  <script src="js/vendor.js"></script>
+    <div id="registered-message" title="Registration complete!">
+      <p>
+        <span class="ui-icon ui-icon-circle-check" style="float:left; margin:0 7px 50px 0;"></span>
+        You are now registered!
+      </p>
+    </div>
 
-  <script src="js/main.js"></script>
-</body>
+    <div id="sign-in-form" title="Sign in">
+      <form>
+          <fieldset>            
+            <label for="sign-in-username">Username</label>
+            <input type="text" id="sign-in-username" class="text ui-widget-content ui-corner-all">
+            <label for="sign-in-password">Password</label>
+            <input type="password" id="sign-in-password" class="text ui-widget-content ui-corner-all">
+          </fieldset>
+        </form>
+    </div>
+
+  </body>
+
 </html>
