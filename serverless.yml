@@ -4,14 +4,15 @@ plugins:
   - serverless-iam-roles-per-function
   - serverless-finch
   - serverless-export-outputs
+  - serverless-plugin-resource-tagging
 
 custom:
-  name: yancui
+  name: devsteve 
   unicornStableApi: h48kqx343c.execute-api.us-east-1.amazonaws.com/dev
   client:
     bucketName: ${self:service}-${sls:stage}.us-east-1.frontend
   exportOutputs:
-    include:
+    patterns:
       - UserPoolId
       - UserPoolArn
       - UserPoolClientId
@@ -22,16 +23,18 @@ custom:
 
 provider:
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs18.x
   stage: dev
+  stackTags:
+      LUMIGO_TAG: "aws_workshop"
 
 package:
-  exclude:
-    - client/**
-    - .serverless/**
-    - package.json
-    - package-lock.json
-    - serverless.yml
+  patterns:
+    - '!client/**'
+    - '!serverless/**'
+    - '!package.json'
+    - '!package-lock.json'
+    - '!serverless.yml'
 
 functions:
   requestUnicorn:
