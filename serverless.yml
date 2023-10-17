@@ -27,7 +27,7 @@ provider:
   stage: dev
   stackTags:
       LUMIGO_TAG: "aws_workshop"
-
+      LUMIGO: "auto-trace"
 package:
   patterns:
     - '!client/**'
