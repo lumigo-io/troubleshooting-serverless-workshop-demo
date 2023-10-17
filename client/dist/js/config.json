@@ -1,6 +1,5 @@
-// Just here as an example. We don't use this file. We use what is created by
-// a Lambda custom resource.
-window._config = {
+// Sample data; we actually generate this in CDK and upload it to the Frontend S3 bucket
+{
     cognito: {
         userPoolId: '', // e.g. us-east-2_uXboG5pAb
         userPoolClientId: '', // e.g. 25ddkmj4v6hfsfvruhpfi7n4hv
